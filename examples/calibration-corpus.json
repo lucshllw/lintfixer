@@ -1,0 +1,63 @@
+{
+  "version": 1,
+  "threshold": 0.7,
+  "cases": [
+    {
+      "fixtureId": "arch-controller-sql-violation",
+      "ruleId": "ARCH-001",
+      "authorLabel": "VIOLATION",
+      "task": "Add endpoint to fetch active orders",
+      "diff": "diff --git a/src/controllers/orders.ts b/src/controllers/orders.ts\n--- a/src/controllers/orders.ts\n+++ b/src/controllers/orders.ts\n@@ -1,3 +1,5 @@\n export async function getOrders() {\n+  return db.query('SELECT * FROM orders WHERE active = 1');\n }\n",
+      "ruleSummary": "HTTP controllers must delegate business logic and DB queries to services.",
+      "violationCriteria": "Controller imports or invokes DB queries directly.",
+      "allowedCriteria": "Validation, HTTP mapping, and service delegation.",
+      "scopedPath": "src/controllers/orders.ts",
+      "precomputedProbability": 0.94,
+      "precomputedConfidence": 0.96,
+      "sliceProbabilities": [0.94, 0.12]
+    },
+    {
+      "fixtureId": "arch-controller-health-ok",
+      "ruleId": "ARCH-001",
+      "authorLabel": "NO_VIOLATION",
+      "task": "Add lightweight health probe route",
+      "diff": "diff --git a/src/controllers/health.ts b/src/controllers/health.ts\n--- a/src/controllers/health.ts\n+++ b/src/controllers/health.ts\n@@ -1,2 +1,4 @@\n export function health() {\n+  return { status: 'ok' };\n }\n",
+      "ruleSummary": "HTTP controllers must delegate business logic and DB queries to services.",
+      "violationCriteria": "Controller imports or invokes DB queries directly.",
+      "allowedCriteria": "Validation, HTTP mapping, and service delegation.",
+      "scopedPath": "src/controllers/health.ts",
+      "precomputedProbability": 0.76,
+      "precomputedConfidence": 0.88,
+      "sliceProbabilities": [0.76, 0.08],
+      "rationale": "Static probe object flagged as inline logic."
+    },
+    {
+      "fixtureId": "sec-hardcoded-token-violation",
+      "ruleId": "SEC-001",
+      "authorLabel": "VIOLATION",
+      "task": "Configure webhook client",
+      "diff": "diff --git a/src/webhook.ts b/src/webhook.ts\n--- a/src/webhook.ts\n+++ b/src/webhook.ts\n@@ -1,1 +1,2 @@\n+export const TOKEN = 'ghp_1234567890abcdefghijklmnop';\n",
+      "ruleSummary": "Never hardcode credentials or secret tokens.",
+      "violationCriteria": "Hardcoding secret keys or auth tokens.",
+      "allowedCriteria": "Environment variable lookup.",
+      "scopedPath": "src/webhook.ts",
+      "precomputedProbability": 0.98,
+      "precomputedConfidence": 0.99,
+      "sliceProbabilities": [0.98]
+    },
+    {
+      "fixtureId": "arch-controller-delegates-ok",
+      "ruleId": "ARCH-001",
+      "authorLabel": "NO_VIOLATION",
+      "task": "Delegate order query to OrderService",
+      "diff": "diff --git a/src/controllers/orders.ts b/src/controllers/orders.ts\n--- a/src/controllers/orders.ts\n+++ b/src/controllers/orders.ts\n@@ -1,3 +1,4 @@\n export async function getOrders(service: OrderService) {\n+  return service.listActive();\n }\n",
+      "ruleSummary": "HTTP controllers must delegate business logic and DB queries to services.",
+      "violationCriteria": "Controller imports or invokes DB queries directly.",
+      "allowedCriteria": "Validation, HTTP mapping, and service delegation.",
+      "scopedPath": "src/controllers/orders.ts",
+      "precomputedProbability": 0.07,
+      "precomputedConfidence": 0.97,
+      "sliceProbabilities": [0.07]
+    }
+  ]
+}

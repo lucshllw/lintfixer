@@ -1,0 +1,49 @@
+name: Ikigai Semantic PR Bot
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+jobs:
+  semantic-review:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout base ref safely
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node 24
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v4
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile --ignore-scripts || pnpm install --ignore-scripts
+
+      - name: Run Ikigai PR Review Bot
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          node --input-type=module -e '
+            import { runGitHubPrBot } from "./packages/github-action/src/index.ts";
+            const res = await runGitHubPrBot({
+              repository: process.env.GITHUB_REPOSITORY,
+              eventPath: process.env.GITHUB_EVENT_PATH,
+              githubToken: process.env.GITHUB_TOKEN,
+              workspaceDir: process.cwd(),
+              proposeFixes: true,
+            });
+            console.log(JSON.stringify(res, null, 2));
+            process.exitCode = res.exitCode;
+          '

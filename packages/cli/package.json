@@ -1,0 +1,16 @@
+{
+  "name": "@ikigai/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "ikigai": "./src/main.ts"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "@ikigai/adapters": "workspace:*",
+    "@ikigai/core": "workspace:*"
+  }
+}

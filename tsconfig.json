@@ -1,0 +1,22 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "baseUrl": ".",
+    "paths": {
+      "@ikigai/core": ["packages/core/src/index.ts"],
+      "@ikigai/adapters": ["packages/adapters/src/index.ts"],
+      "@ikigai/cli": ["packages/cli/src/index.ts"],
+      "@ikigai/github-action": ["packages/github-action/src/index.ts"],
+      "lintfixer": ["packages/lintfixer/src/index.ts"]
+    }
+  },
+  "include": [
+    "packages/core/**/*.ts",
+    "packages/adapters/**/*.ts",
+    "packages/cli/**/*.ts",
+    "packages/github-action/**/*.ts",
+    "packages/lintfixer/src/**/*.ts",
+    "packages/lintfixer/test/**/*.ts",
+    "vitest.config.ts"
+  ]
+}

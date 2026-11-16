@@ -1,0 +1,50 @@
+{
+  "version": 1,
+  "threshold": 0.7,
+  "cases": [
+    {
+      "fixtureId": "arch-core-imports-fs-violation",
+      "ruleId": "ARCH-001",
+      "authorLabel": "VIOLATION",
+      "task": "Read helper config from disk inside core",
+      "diff": "diff --git a/packages/core/src/helper.ts b/packages/core/src/helper.ts\n--- a/packages/core/src/helper.ts\n+++ b/packages/core/src/helper.ts\n@@ -1,2 +1,4 @@\n+import { readFileSync } from 'node:fs';\n export function readName() {\n-  return 'ikigai';\n+  return readFileSync('name.txt', 'utf8');\n }\n",
+      "ruleSummary": "packages/core must remain pure domain logic with zero node:* or filesystem imports.",
+      "violationCriteria": "Importing node:*, fs, child_process, or HTTP clients inside packages/core.",
+      "allowedCriteria": "Pure TypeScript modules and zod/yaml schema parsing.",
+      "scopedPath": "packages/core/src/helper.ts"
+    },
+    {
+      "fixtureId": "arch-core-pure-helper-ok",
+      "ruleId": "ARCH-001",
+      "authorLabel": "NO_VIOLATION",
+      "task": "Add pure string helper in core",
+      "diff": "diff --git a/packages/core/src/helper.ts b/packages/core/src/helper.ts\n--- a/packages/core/src/helper.ts\n+++ b/packages/core/src/helper.ts\n@@ -1,2 +1,4 @@\n export function normalizeId(id: string): string {\n-  return id.trim();\n+  return id.trim().toLowerCase();\n }\n",
+      "ruleSummary": "packages/core must remain pure domain logic with zero node:* or filesystem imports.",
+      "violationCriteria": "Importing node:*, fs, child_process, or HTTP clients inside packages/core.",
+      "allowedCriteria": "Pure TypeScript modules and zod/yaml schema parsing.",
+      "scopedPath": "packages/core/src/helper.ts"
+    },
+    {
+      "fixtureId": "sec-hardcoded-key-violation",
+      "ruleId": "SEC-001",
+      "authorLabel": "VIOLATION",
+      "task": "Set fallback API key in client",
+      "diff": "diff --git a/packages/adapters/src/client.ts b/packages/adapters/src/client.ts\n--- a/packages/adapters/src/client.ts\n+++ b/packages/adapters/src/client.ts\n@@ -1,1 +1,2 @@\n+export const ADMIN_SECRET = 'hardcoded-prod-secret-99812';\n",
+      "ruleSummary": "Secrets and credentials must never be hardcoded or exposed.",
+      "violationCriteria": "Hardcoding raw API keys, tokens, or secrets in source files.",
+      "allowedCriteria": "Reading credentials via env vars or user credential store.",
+      "scopedPath": "packages/adapters/src/client.ts"
+    },
+    {
+      "fixtureId": "sec-env-lookup-ok",
+      "ruleId": "SEC-001",
+      "authorLabel": "NO_VIOLATION",
+      "task": "Read API key from process environment",
+      "diff": "diff --git a/packages/adapters/src/client.ts b/packages/adapters/src/client.ts\n--- a/packages/adapters/src/client.ts\n+++ b/packages/adapters/src/client.ts\n@@ -1,1 +1,2 @@\n+export const apiKey = process.env.GEMINI_API_KEY ?? null;\n",
+      "ruleSummary": "Secrets and credentials must never be hardcoded or exposed.",
+      "violationCriteria": "Hardcoding raw API keys, tokens, or secrets in source files.",
+      "allowedCriteria": "Reading credentials via env vars or user credential store.",
+      "scopedPath": "packages/adapters/src/client.ts"
+    }
+  ]
+}

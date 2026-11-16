@@ -1,0 +1,31 @@
+{
+  "name": "lintfixer",
+  "version": "0.2.0",
+  "description": "LintFixer — Semantic Linter, Git Score, Verified Auto-Fix, GitHub Search & DPAPI Encrypted Vault with Rack Observatorio desktop UI and Kat-Brackets mascot.",
+  "type": "module",
+  "license": "MIT",
+  "bin": {
+    "lintfixer": "./bin/lintfixer.mjs"
+  },
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "files": [
+    "bin",
+    "dist",
+    "assets",
+    "README.md"
+  ],
+  "scripts": {
+    "postinstall": "node ./bin/postinstall.mjs",
+    "build": "node ./scripts/build.mjs"
+  },
+  "devDependencies": {
+    "@ikigai/adapters": "workspace:*",
+    "@ikigai/cli": "workspace:*",
+    "@ikigai/core": "workspace:*"
+  }
+}
