@@ -26,7 +26,12 @@ import type {
 import { DEFAULT_POLICY_CONFIG, parsePolicyConfig } from "../rules/parse-config.ts";
 import { parseRules } from "../rules/parse-rules.ts";
 import { BUILT_IN_DEFINITIONS } from "./builtins.ts";
-import { aggregateSliceJudgments, combineAggregateOutcome, evaluateSingleGate } from "./gate.ts";
+import {
+  aggregateSliceJudgments,
+  combineAggregateOutcome,
+  evaluateSingleGate,
+  shouldInvokeTieBreaker,
+} from "./gate.ts";
 import { verifyEvidenceGrounding } from "./grounding.ts";
 
 export interface ReviewTurnDependencies {
@@ -306,11 +311,48 @@ async function evaluateRuleLane(
         }
 
         const grounding = verifyEvidenceGrounding(res.judgment, slice.files, slice.diff, warnFloor);
+        let finalJudgment = res.judgment;
+        let finalGrounding = grounding;
+
+        if (
+          config.providers.tieBreaker &&
+          shouldInvokeTieBreaker(
+            rule.severity,
+            res.judgment.violationProbability,
+            config.thresholds,
+          )
+        ) {
+          const tieRes = await deps.provider.judgeRuleSlice({
+            kind: "RULE",
+            checkId: rule.id,
+            ruleSummary: rule.description,
+            violationCriteria: rule.violation,
+            allowedCriteria: rule.allowed,
+            task: turn.task,
+            files: slice.files,
+            diff: slice.diff,
+            nonce,
+            endpoint: config.providers.tieBreaker,
+          });
+          if (tieRes.telemetry) {
+            telemetry.push(tieRes.telemetry);
+          }
+          if (tieRes.status === "OK") {
+            finalJudgment = tieRes.judgment;
+            finalGrounding = verifyEvidenceGrounding(
+              finalJudgment,
+              slice.files,
+              slice.diff,
+              warnFloor,
+            );
+          }
+        }
+
         const gate = evaluateSingleGate(
           rule.severity,
-          res.judgment.violationProbability,
-          res.judgment.confidence,
-          grounding.grounded,
+          finalJudgment.violationProbability,
+          finalJudgment.confidence,
+          finalGrounding.grounded,
           config.thresholds,
         );
 
@@ -320,11 +362,11 @@ async function evaluateRuleLane(
           hunkOrdinal: slice.hunkOrdinal,
           outcome: gate.outcome,
           probability: gate.violationProbability,
-          confidence: res.judgment.confidence,
-          grounded: grounding.grounded,
-          evidenceHunk: res.judgment.evidenceHunk,
-          rationale: res.judgment.rationale,
-          reason: grounding.grounded ? null : "UNGROUNDED_EVIDENCE",
+          confidence: finalJudgment.confidence,
+          grounded: finalGrounding.grounded,
+          evidenceHunk: finalJudgment.evidenceHunk,
+          rationale: finalJudgment.rationale,
+          reason: finalGrounding.grounded ? null : "UNGROUNDED_EVIDENCE",
         };
       }),
     );
@@ -447,10 +489,11 @@ async function evaluateBuiltIns(
     }));
   }
 
-  return BUILT_IN_DEFINITIONS.map((def) => {
+  const resolvedEntries: BuiltInReviewResult[] = [];
+  for (const def of BUILT_IN_DEFINITIONS) {
     const answer = batch.answers[def.id];
     if (answer.status === "FAILED") {
-      return {
+      resolvedEntries.push({
         kind: "BUILT_IN",
         id: def.id,
         severity: def.severity,
@@ -461,15 +504,10 @@ async function evaluateBuiltIns(
         evidenceHunk: null,
         rationale: null,
         reason: answer.reason,
-      };
+      });
+      continue;
     }
 
-    const grounding = verifyEvidenceGrounding(
-      answer.judgment,
-      scopedPaths,
-      fullDiff,
-      def.warnThreshold,
-    );
     const fixedThresholds = {
       error: {
         warn: def.warnThreshold,
@@ -479,27 +517,61 @@ async function evaluateBuiltIns(
       confidenceMin: config.thresholds.confidenceMin,
     };
 
+    let finalJudgment = answer.judgment;
+    if (
+      config.providers.tieBreaker &&
+      shouldInvokeTieBreaker(def.severity, answer.judgment.violationProbability, fixedThresholds)
+    ) {
+      const tieRes = await provider.judgeRuleSlice({
+        kind: "BUILT_IN",
+        checkId: def.id,
+        ruleSummary: def.item.ruleSummary,
+        violationCriteria: def.item.violationCriteria,
+        allowedCriteria: def.item.allowedCriteria,
+        task: turn.task,
+        files: scopedPaths,
+        diff: fullDiff,
+        nonce,
+        endpoint: config.providers.tieBreaker,
+      });
+      if (tieRes.telemetry) {
+        telemetry.push(tieRes.telemetry);
+      }
+      if (tieRes.status === "OK") {
+        finalJudgment = tieRes.judgment;
+      }
+    }
+
+    const grounding = verifyEvidenceGrounding(
+      finalJudgment,
+      scopedPaths,
+      fullDiff,
+      def.warnThreshold,
+    );
+
     const gate = evaluateSingleGate(
       def.severity,
-      answer.judgment.violationProbability,
-      answer.judgment.confidence,
+      finalJudgment.violationProbability,
+      finalJudgment.confidence,
       grounding.grounded,
       fixedThresholds,
     );
 
-    return {
+    resolvedEntries.push({
       kind: "BUILT_IN",
       id: def.id,
       severity: def.severity,
       outcome: gate.outcome,
       violationProbability: gate.violationProbability,
-      confidence: answer.judgment.confidence,
+      confidence: finalJudgment.confidence,
       scopedPaths,
-      evidenceHunk: answer.judgment.evidenceHunk,
-      rationale: answer.judgment.rationale,
+      evidenceHunk: finalJudgment.evidenceHunk,
+      rationale: finalJudgment.rationale,
       reason: grounding.grounded ? null : "UNGROUNDED_EVIDENCE",
-    };
-  });
+    });
+  }
+
+  return resolvedEntries;
 }
 
 function countOutcomes(entries: readonly ReviewEntry[]): ReviewCounts {

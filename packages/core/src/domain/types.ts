@@ -6,7 +6,7 @@ export type Outcome = "PASS" | "WARN" | "FAIL" | "SKIPPED" | "UNAVAILABLE";
 
 export type SliceAggregationMode = "max" | "topKMean" | "noisyOr";
 
-export type ProviderKind = "openai" | "gemini" | "claude" | "cli";
+export type ProviderKind = "openai" | "gemini" | "claude" | "cli" | "jev";
 
 export type ProviderMode = "api" | "cli";
 
@@ -77,6 +77,7 @@ export interface ProviderEndpointConfig {
 
 export interface ProvidersConfig {
   readonly judge: ProviderEndpointConfig;
+  readonly tieBreaker?: ProviderEndpointConfig;
   readonly fixer: ProviderEndpointConfig;
 }
 

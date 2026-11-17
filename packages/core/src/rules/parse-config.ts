@@ -48,7 +48,7 @@ const UnitNumberSchema = z.number().finite().min(0).max(1);
 
 const EndpointSchema = z
   .object({
-    provider: z.enum(["openai", "gemini", "claude", "cli"]),
+    provider: z.enum(["openai", "gemini", "claude", "cli", "jev"]),
     model: z.string().min(1),
     mode: z.enum(["api", "cli"]).default("api"),
     cliCommand: z.string().min(1).optional(),
@@ -90,6 +90,7 @@ const ConfigInputSchema = z
     providers: z
       .object({
         judge: EndpointSchema.optional(),
+        tieBreaker: EndpointSchema.optional(),
         fixer: EndpointSchema.optional(),
       })
       .strict()
@@ -212,6 +213,25 @@ export function parsePolicyConfig(yamlText: string | null): ConfigParseResult {
       }
     : DEFAULT_POLICY_CONFIG.providers.fixer;
 
+  if (fixerEndpoint.provider === "jev") {
+    return {
+      status: "INVALID",
+      code: "INVALID_CONFIG",
+      message: "JEV_CANNOT_FIX: providers.fixer cannot use non-generative provider 'jev'.",
+    };
+  }
+
+  const tieBreakerEndpoint = data.providers?.tieBreaker
+    ? {
+        provider: data.providers.tieBreaker.provider,
+        model: data.providers.tieBreaker.model,
+        mode: data.providers.tieBreaker.mode,
+        ...(data.providers.tieBreaker.cliCommand !== undefined
+          ? { cliCommand: data.providers.tieBreaker.cliCommand }
+          : {}),
+      }
+    : undefined;
+
   return {
     status: "PARSED",
     config: {
@@ -220,6 +240,7 @@ export function parsePolicyConfig(yamlText: string | null): ConfigParseResult {
       slicing: data.slicing ?? DEFAULT_POLICY_CONFIG.slicing,
       providers: {
         judge: judgeEndpoint,
+        ...(tieBreakerEndpoint ? { tieBreaker: tieBreakerEndpoint } : {}),
         fixer: fixerEndpoint,
       },
       fix: data.fix ?? DEFAULT_POLICY_CONFIG.fix,

@@ -4,7 +4,7 @@ import { dirname, join, resolve } from "node:path";
 import type { ProviderKind } from "@ikigai/core";
 import { createEncryptedVault, type VaultNamespace } from "./encrypted-vault.ts";
 
-export type CredentialKeyName = "openai" | "gemini" | "claude" | "github";
+export type CredentialKeyName = "openai" | "gemini" | "claude" | "jev" | "github";
 
 export interface CredentialLookupResult {
   readonly found: boolean;
@@ -16,6 +16,7 @@ const ENV_VAR_BY_KEY: Readonly<Record<CredentialKeyName, string>> = {
   openai: "OPENAI_API_KEY",
   gemini: "GEMINI_API_KEY",
   claude: "ANTHROPIC_API_KEY",
+  jev: "TYPESAFE_API_KEY",
   github: "GITHUB_TOKEN",
 };
 
@@ -23,6 +24,7 @@ const NAMESPACE_BY_KEY: Readonly<Record<CredentialKeyName, VaultNamespace>> = {
   openai: "llm.openai",
   gemini: "llm.gemini",
   claude: "llm.claude",
+  jev: "llm.jev",
   github: "github.oauth",
 };
 
@@ -145,7 +147,7 @@ export function migrateLegacyCredentialsToVault(
     const raw = JSON.parse(readFileSync(legacyPath, "utf8")) as Record<string, unknown>;
     const migrated: CredentialKeyName[] = [];
 
-    for (const key of ["openai", "gemini", "claude", "github"] as const) {
+    for (const key of ["openai", "gemini", "claude", "jev", "github"] as const) {
       const value = raw[key];
       if (typeof value === "string" && value.trim().length >= 4) {
         const ns = key === "github" ? "github.pat" : NAMESPACE_BY_KEY[key];
@@ -188,6 +190,8 @@ export function providerToCredentialKey(provider: ProviderKind): CredentialKeyNa
       return "gemini";
     case "claude":
       return "claude";
+    case "jev":
+      return "jev";
     case "cli":
       return null;
   }

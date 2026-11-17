@@ -9,5 +9,6 @@ export * from "./github/github-search.ts";
 export * from "./history/local-stores.ts";
 export * from "./providers/cli-providers.ts";
 export * from "./providers/http-providers.ts";
+export * from "./providers/jev-provider.ts";
 export * from "./providers/provider-router.ts";
 export * from "./providers/schema.ts";

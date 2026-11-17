@@ -17,6 +17,7 @@ import { fileURLToPath } from "node:url";
 export type VaultNamespace =
   | "github.oauth"
   | "github.pat"
+  | "llm.jev"
   | "llm.gemini"
   | "llm.openai"
   | "llm.claude";
@@ -67,6 +68,10 @@ export const VAULT_DEFINITIONS: Readonly<
 > = {
   "github.oauth": { label: "GitHub OAuth", endpoint: "https://api.github.com" },
   "github.pat": { label: "GitHub PAT", endpoint: "https://api.github.com" },
+  "llm.jev": {
+    label: "TypeSafe Jev",
+    endpoint: "https://api.typesafe.ai",
+  },
   "llm.gemini": {
     label: "Google Gemini",
     endpoint: "https://generativelanguage.googleapis.com",
@@ -78,6 +83,7 @@ export const VAULT_DEFINITIONS: Readonly<
 const ALL_NAMESPACES: readonly VaultNamespace[] = [
   "github.oauth",
   "github.pat",
+  "llm.jev",
   "llm.gemini",
   "llm.openai",
   "llm.claude",

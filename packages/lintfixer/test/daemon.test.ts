@@ -91,5 +91,46 @@ describe("lintfixer loopback daemon security & API", () => {
     // Serves Kat-Brackets ICO asset cleanly
     const icoRes = await fetch(`${origin}/kat-brackets.ico`);
     expect(icoRes.status).toBe(200);
+
+    // Recognizes sealed llm.jev credential as active judge key when config selects provider: jev
+    mkdirSync(join(tmpDir, ".ikigai"), { recursive: true });
+    writeFileSync(
+      join(tmpDir, ".ikigai", "config.yaml"),
+      `version: 1
+providers:
+  judge:
+    provider: jev
+    model: jev-latest
+    mode: api
+  fixer:
+    provider: gemini
+    model: gemini-2.5-flash
+    mode: api
+`,
+      "utf8",
+    );
+
+    const jevSave = await fetch(`${origin}/api/vault/secret`, {
+      method: "POST",
+      headers: {
+        "content-type": "application/json",
+        "x-lintfixer-token": daemon.sessionToken,
+      },
+      body: JSON.stringify({ namespace: "llm.jev", secret: "ts_synthetic_vault_5555" }),
+    });
+    expect(jevSave.status).toBe(200);
+
+    const jevBootRes = await fetch(`${origin}/api/bootstrap`, {
+      headers: { "x-lintfixer-token": daemon.sessionToken },
+    });
+    const jevBootJson = (await jevBootRes.json()) as {
+      activeProvider: { judgeProvider: string; hasJudgeCredential: boolean };
+      vaultEntries: { namespace: string; status: string; maskedPreview: string | null }[];
+    };
+    expect(jevBootJson.activeProvider.judgeProvider).toBe("jev");
+    expect(jevBootJson.activeProvider.hasJudgeCredential).toBe(true);
+    const jevMeta = jevBootJson.vaultEntries.find((e) => e.namespace === "llm.jev");
+    expect(jevMeta?.status).toBe("sealed");
+    expect(jevMeta?.maskedPreview).toBe("••••5555");
   }, 15_000);
 });

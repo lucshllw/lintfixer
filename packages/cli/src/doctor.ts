@@ -70,7 +70,7 @@ export async function runDoctor(
     detail: `claude=${claudeVer ?? "missing"}, codex=${codexVer ?? "missing"}`,
   });
 
-  for (const key of ["openai", "gemini", "claude"] as const) {
+  for (const key of ["openai", "gemini", "claude", "jev"] as const) {
     const lookup = resolveCredential(key, repoRoot ?? undefined, env);
     checks.push({
       name: `cred:${key}`,

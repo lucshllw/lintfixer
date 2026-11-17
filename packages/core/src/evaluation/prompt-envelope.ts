@@ -83,6 +83,7 @@ export function buildBuiltInBatchUserPrompt(request: BuiltInBatchRequest): strin
 
   return [
     "Evaluate all three built-in checks independently against the same attributed change.",
+    'Return ONLY one strict JSON object keyed by exact check IDs: {"SCOPE-CREEP": <judgment>, "COMPLEXITY": <judgment>, "TEST-ADEQUACY": <judgment>}, where each <judgment> matches {violationProbability, confidence, evidenceHunk, rationale}.',
     wrapUntrustedBlock("built_in_checks", checksText, request.nonce),
     wrapUntrustedBlock("task", request.task, request.nonce),
     wrapUntrustedBlock("files", request.files.join("\n"), request.nonce),

@@ -7,7 +7,7 @@ import {
 } from "./schema.ts";
 
 export interface JsonCompletionRequest {
-  readonly provider: Exclude<ProviderKind, "cli">;
+  readonly provider: Exclude<ProviderKind, "cli" | "jev">;
   readonly model: string;
   readonly apiKey: string;
   readonly systemPrompt: string;
