@@ -277,4 +277,111 @@ describe("adapters", () => {
     expect(res.ok).toBe(true);
     expect(res.url).toContain("pull/7");
   });
+
+  it("routes Jev System-1 rule/batch judges via TYPESAFE_API_KEY vault and refuses fix patches with JEV_CANNOT_FIX", async () => {
+    const dir = makeTempDir("ikigai-jev-");
+    const env: NodeJS.ProcessEnv = {
+      XDG_CONFIG_HOME: makeTempDir("jev-cfg-"),
+      XDG_DATA_HOME: makeTempDir("jev-data-"),
+    };
+
+    saveCredential("jev", "ts_synthetic_jev_secret_9876", env);
+    let capturedAuth = "";
+    let capturedUrl = "";
+
+    const jevFetch: typeof fetch = async (input, init) => {
+      capturedUrl = typeof input === "string" ? input : input.toString();
+      capturedAuth = new Headers(init?.headers).get("authorization") ?? "";
+      const body = JSON.parse(String(init?.body ?? "{}")) as {
+        state?: { checks?: unknown };
+      };
+      if (body.state?.checks) {
+        return new Response(
+          JSON.stringify({
+            answers: {
+              "SCOPE-CREEP": { type: "noul", noul: 0.12 },
+              COMPLEXITY: { type: "noul", noul: 0.78 },
+              "TEST-ADEQUACY": { type: "invalid" },
+            },
+          }),
+          { status: 200 },
+        );
+      }
+      return new Response(
+        JSON.stringify({
+          answers: { violation: { type: "noul", noul: 0.89 } },
+        }),
+        { status: 200 },
+      );
+    };
+
+    const router = createMultiProvider({ workingDir: dir, env, fetchImpl: jevFetch });
+
+    const ruleRes = await router.judgeRuleSlice({
+      kind: "RULE",
+      checkId: "ARCH-001",
+      ruleSummary: "No SQL in controller",
+      violationCriteria: "Imports SQL directly",
+      allowedCriteria: null,
+      task: "Add handler",
+      files: ["src/ctrl.ts"],
+      diff: "diff --git a/src/ctrl.ts b/src/ctrl.ts\n--- a/src/ctrl.ts\n+++ b/src/ctrl.ts\n@@ -1,1 +1,2 @@\n+db.query('SELECT 1');\n",
+      nonce: "n-jev",
+      endpoint: { provider: "jev", model: "jev-latest", mode: "api" },
+    });
+
+    expect(capturedUrl).toBe("https://api.typesafe.ai/v1/systemone");
+    expect(capturedAuth).toBe("Bearer ts_synthetic_jev_secret_9876");
+    expect(ruleRes.status).toBe("OK");
+    if (ruleRes.status === "OK") {
+      expect(ruleRes.judgment.violationProbability).toBe(0.89);
+      expect(ruleRes.judgment.evidenceHunk?.quote).toContain("db.query('SELECT 1')");
+    }
+
+    const batchRes = await router.judgeBuiltInBatch({
+      task: "Add handler",
+      files: ["src/ctrl.ts"],
+      diff: "@@ -1,1 +1,2 @@\n+db.query('SELECT 1');\n",
+      nonce: "n-jev-b",
+      endpoint: { provider: "jev", model: "jev-latest", mode: "api" },
+      checks: [
+        {
+          checkId: "SCOPE-CREEP",
+          ruleSummary: "Scope",
+          violationCriteria: "Out of scope",
+          allowedCriteria: "In scope",
+        },
+        {
+          checkId: "COMPLEXITY",
+          ruleSummary: "Complexity",
+          violationCriteria: "Too complex",
+          allowedCriteria: "Simple",
+        },
+        {
+          checkId: "TEST-ADEQUACY",
+          ruleSummary: "Tests",
+          violationCriteria: "No tests",
+          allowedCriteria: "Tested",
+        },
+      ],
+    });
+    expect(batchRes.status).toBe("OK");
+    if (batchRes.status === "OK") {
+      expect(batchRes.answers["SCOPE-CREEP"].status).toBe("OK");
+      expect(batchRes.answers.COMPLEXITY.status).toBe("OK");
+      expect(batchRes.answers["TEST-ADEQUACY"].status).toBe("FAILED");
+    }
+
+    const fixRes = await router.generateFixPatch?.({
+      task: "Fix controller",
+      diff: "+db.query('SELECT 1');",
+      nonce: "n-fix",
+      endpoint: { provider: "jev", model: "jev-latest", mode: "api" },
+      findings: [],
+    });
+    expect(fixRes?.status).toBe("FAILED");
+    if (fixRes?.status === "FAILED") {
+      expect(fixRes.errorCode).toBe("JEV_CANNOT_FIX");
+    }
+  });
 });

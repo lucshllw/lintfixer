@@ -191,7 +191,7 @@ export async function handleLogin(
   io: CliIo,
   opts: { readonly provider: string; readonly json: boolean },
 ): Promise<number> {
-  const valid: readonly CredentialKeyName[] = ["openai", "gemini", "claude", "github"];
+  const valid: readonly CredentialKeyName[] = ["openai", "gemini", "claude", "jev", "github"];
   if (!valid.includes(opts.provider as CredentialKeyName)) {
     emitOutput(
       io,
@@ -470,7 +470,7 @@ export async function handleCalibrate(
       ? parsedCfg.config.providers.judge
       : DEFAULT_POLICY_CONFIG.providers.judge;
 
-  const validProviders = new Set(["openai", "gemini", "claude", "cli"]);
+  const validProviders = new Set(["openai", "gemini", "claude", "cli", "jev"]);
   const selectedProvider =
     opts.providerName && validProviders.has(opts.providerName)
       ? (opts.providerName as ProviderKind)

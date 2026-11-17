@@ -107,4 +107,47 @@ base: &ref
 `;
     expect(parsePolicyConfig(anchored).status).toBe("INVALID");
   });
+
+  it("supports jev judge + tieBreaker config and rejects jev as fixer with JEV_CANNOT_FIX", () => {
+    const validHybrid = `
+version: 1
+providers:
+  judge:
+    provider: jev
+    model: jev-latest
+    mode: api
+  tieBreaker:
+    provider: claude
+    model: claude-sonnet-5-5
+    mode: api
+  fixer:
+    provider: gemini
+    model: gemini-2.5-flash
+    mode: api
+`;
+    const parsed = parsePolicyConfig(validHybrid);
+    expect(parsed.status).toBe("PARSED");
+    if (parsed.status === "PARSED") {
+      expect(parsed.config.providers.judge.provider).toBe("jev");
+      expect(parsed.config.providers.tieBreaker?.provider).toBe("claude");
+    }
+
+    const illegalFixer = `
+version: 1
+providers:
+  judge:
+    provider: jev
+    model: jev-latest
+    mode: api
+  fixer:
+    provider: jev
+    model: jev-latest
+    mode: api
+`;
+    const rejected = parsePolicyConfig(illegalFixer);
+    expect(rejected.status).toBe("INVALID");
+    if (rejected.status === "INVALID") {
+      expect(rejected.message).toContain("JEV_CANNOT_FIX");
+    }
+  });
 });

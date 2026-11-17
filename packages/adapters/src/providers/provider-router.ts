@@ -19,6 +19,7 @@ import {
 import { providerToCredentialKey, resolveCredential } from "../credentials/env-and-store.ts";
 import { callLocalCliJson } from "./cli-providers.ts";
 import { callProviderJsonApi, type JsonCompletionResult } from "./http-providers.ts";
+import { callJevBuiltInBatchApi, callJevRuleApi } from "./jev-provider.ts";
 
 export interface ProviderRouterOptions {
   readonly repoRoot?: string;
@@ -34,6 +35,22 @@ export interface ProviderRouterOptions {
 export function createMultiProvider(options: ProviderRouterOptions): ProviderPort {
   return {
     async judgeRuleSlice(request: JudgeRequest): Promise<JudgeCallResult> {
+      if (request.endpoint.provider === "jev") {
+        const cred = resolveCredential("jev", options.repoRoot, options.env);
+        if (!cred.found || cred.value === null) {
+          return {
+            status: "FAILED",
+            reason: "PROVIDER_FAILURE",
+            errorCode: "MISSING_CREDENTIAL",
+            telemetry: { provider: "jev", modelId: request.endpoint.model, latencyMs: 0 },
+          };
+        }
+        return callJevRuleApi(request, {
+          apiKey: cred.value,
+          ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
+        });
+      }
+
       const userPrompt = buildJudgeUserPrompt(request);
       const raw = await dispatchJson(
         request.endpoint,
@@ -66,6 +83,22 @@ export function createMultiProvider(options: ProviderRouterOptions): ProviderPor
     },
 
     async judgeBuiltInBatch(request: BuiltInBatchRequest): Promise<BuiltInBatchResult> {
+      if (request.endpoint.provider === "jev") {
+        const cred = resolveCredential("jev", options.repoRoot, options.env);
+        if (!cred.found || cred.value === null) {
+          return {
+            status: "FAILED",
+            reason: "PROVIDER_FAILURE",
+            errorCode: "MISSING_CREDENTIAL",
+            telemetry: { provider: "jev", modelId: request.endpoint.model, latencyMs: 0 },
+          };
+        }
+        return callJevBuiltInBatchApi(request, {
+          apiKey: cred.value,
+          ...(options.fetchImpl ? { fetchImpl: options.fetchImpl } : {}),
+        });
+      }
+
       const userPrompt = buildBuiltInBatchUserPrompt(request);
       const raw = await dispatchJson(
         request.endpoint,
@@ -116,6 +149,15 @@ export function createMultiProvider(options: ProviderRouterOptions): ProviderPor
     },
 
     async generateFixPatch(request: FixPromptRequest): Promise<FixGenerationResult> {
+      if (request.endpoint.provider === "jev") {
+        return {
+          status: "FAILED",
+          errorCode: "JEV_CANNOT_FIX",
+          message: "Jev is a calibrated System-1 judge and cannot generate fix patches.",
+          telemetry: { provider: "jev", modelId: request.endpoint.model, latencyMs: 0 },
+        };
+      }
+
       const findingsText = request.findings
         .map((f) =>
           [
@@ -185,6 +227,14 @@ async function dispatchJson(
     return callLocalCliJson(endpoint, systemPrompt, userPrompt, {
       cwd: options.workingDir,
     });
+  }
+
+  if (endpoint.provider === "jev") {
+    return {
+      ok: false,
+      errorCode: "JEV_SYSTEM_ONE_ONLY",
+      telemetry: { provider: "jev", modelId: endpoint.model, latencyMs: 0 },
+    };
   }
 
   const credKey = providerToCredentialKey(endpoint.provider);

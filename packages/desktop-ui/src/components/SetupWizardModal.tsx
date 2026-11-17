@@ -77,7 +77,7 @@ export function SetupWizardModal({
               </div>
               <p style={{ color: "var(--text-secondary)" }}>
                 O LintFixer roda como daemon local em loopback (`127.0.0.1`) e sela tokens GitHub e
-                chaves Gemini/OpenAI/Claude fora do repositório via{" "}
+                chaves TypeSafe Jev / Gemini / OpenAI / Claude fora do repositório via{" "}
                 <strong>AES-256-GCM + {bootstrap.vaultProtection}</strong>. Nenhuma chave entra no
                 Git quando alguém do time faz commit.
               </p>

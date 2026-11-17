@@ -211,7 +211,7 @@ export async function runLintFixerCli(argv: readonly string[]): Promise<number> 
       const ns = parsed.positionals[0] as VaultNamespace | undefined;
       if (!ns) {
         console.error(
-          "Uso: echo <SECRET> | lintfixer vault set <llm.gemini|llm.openai|llm.claude|github.oauth|github.pat>",
+          "Uso: echo <SECRET> | lintfixer vault set <llm.jev|llm.gemini|llm.openai|llm.claude|github.oauth|github.pat>",
         );
         return 2;
       }

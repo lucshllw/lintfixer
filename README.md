@@ -10,9 +10,9 @@
 ## Highlights
 
 - **Zero-LLM Pre-Filter & Git Score (`0–100`):** Classifies lockfiles, build artifacts, out-of-scope edits, and sensitive files before calling an LLM, saving tokens and displaying transparent scoring across 14 telemetry segments.
-- **Grounded Semantic Linting & Verified Auto-Fix:** Multi-provider support (**Gemini**, **OpenAI**, **Claude**, plus local read-only CLIs) with nonce anti-prompt-injection boundaries, literal `evidenceHunk` grounding checks, protected target blocks (tests/lockfiles/workflows/configs), and automatic rollback on failure.
+- **Grounded Semantic Linting & Verified Auto-Fix:** Multi-provider support (**TypeSafe Jev** calibrated System-1 judge, **Gemini**, **OpenAI**, **Claude**, plus local read-only CLIs) with optional hybrid uncertainty-band tie-breaking (`0.40–0.70`), `JEV_CANNOT_FIX` non-generative fixer guard, nonce anti-prompt-injection boundaries, literal `evidenceHunk` grounding checks, and automatic rollback on failure.
 - **Native GitHub Explorer & Team Workflows:** Search public or authenticated repositories, inspect commits and open Pull Requests, and install zero-secret commit hooks (`pre-commit`, `commit-msg`) or PR Bot workflows.
-- **Encrypted Local Vault (`AES-256-GCM + DPAPI`):** Starts completely logged out for every user; seals each user's API keys and GitHub OAuth / CLI sessions outside repositories using 96-bit IV, 128-bit AuthTag, strict `AAD`, and OS keystore master-key protection.
+- **Encrypted Local Vault (`AES-256-GCM + DPAPI`):** Starts completely logged out for every user; seals each user's API keys (`TYPESAFE_API_KEY` under `llm.jev`, Gemini, OpenAI, Claude) and GitHub OAuth / CLI sessions outside repositories using 96-bit IV, 128-bit AuthTag, strict `AAD`, and OS keystore master-key protection.
 - **Animated Desktop Experience + CLI:** Loopback daemon (`127.0.0.1`) serving a 60fps GSAP + React 19 UI in an isolated `--app=` window, plus ANSI-animated NPM install/CLI launcher and Windows `.exe` installer.
 
 ## Packages

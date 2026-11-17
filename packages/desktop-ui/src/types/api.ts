@@ -3,7 +3,13 @@ export type TabId = "github" | "diff" | "calibration" | "vault";
 export type TelemetrySegmentState = "pass" | "warn" | "fail" | "empty";
 
 export interface VaultEntryMeta {
-  readonly namespace: "github.oauth" | "github.pat" | "llm.gemini" | "llm.openai" | "llm.claude";
+  readonly namespace:
+    | "github.oauth"
+    | "github.pat"
+    | "llm.jev"
+    | "llm.gemini"
+    | "llm.openai"
+    | "llm.claude";
   readonly providerLabel: string;
   readonly endpoint: string;
   readonly status: "sealed" | "missing";

@@ -123,6 +123,7 @@ const MIME_BY_EXT: Readonly<Record<string, string>> = {
 const VALID_VAULT_NAMESPACES = new Set<VaultNamespace>([
   "github.oauth",
   "github.pat",
+  "llm.jev",
   "llm.gemini",
   "llm.openai",
   "llm.claude",
@@ -252,7 +253,7 @@ export async function startLintFixerDaemon(opts: DaemonOptions): Promise<Running
         const vault = createEncryptedVault({ env });
         const ghToken = await resolveActiveGitHubToken(env);
         const viewer = ghToken ? await fetchGitHubViewer(ghToken, fetchImpl) : null;
-        const policyCfg = await readLocalPolicyConfig(repoRoot);
+        const policyCfg = await readLocalPolicyConfig(repoRoot ?? opts.cwd);
         const judgeKey = providerKeyLookup(policyCfg.providers.judge.provider, env);
         const legacyPath = join(resolveIkigaiConfigDir(env), "credentials.json");
         let legacyNeedsMigration = false;
@@ -770,7 +771,7 @@ jobs:
 
         const threshold = Number(body.threshold) || rawCorpus.threshold || 0.7;
         const repeats = Math.max(1, Math.min(3, Number(body.repeats) || 1));
-        const cfg = await readLocalPolicyConfig(repoRoot);
+        const cfg = await readLocalPolicyConfig(repoRoot ?? opts.cwd);
         const provider =
           opts.providerOverride ??
           createMultiProvider({
@@ -1046,7 +1047,12 @@ async function resolveActiveGitHubToken(env: NodeJS.ProcessEnv): Promise<string 
 }
 
 function providerKeyLookup(provider: string, env: NodeJS.ProcessEnv) {
-  if (provider === "openai" || provider === "gemini" || provider === "claude") {
+  if (
+    provider === "openai" ||
+    provider === "gemini" ||
+    provider === "claude" ||
+    provider === "jev"
+  ) {
     return resolveCredential(provider, undefined, env);
   }
   return { found: provider === "cli", source: "missing" as const, value: null };

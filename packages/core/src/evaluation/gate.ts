@@ -147,6 +147,22 @@ export function computeAggregateProbability(
   return 1 - passProb;
 }
 
+export function shouldInvokeTieBreaker(
+  severity: RuleSeverity,
+  probability: number,
+  thresholds: ThresholdConfig,
+): boolean {
+  if (!Number.isFinite(probability) || probability < 0 || probability > 1) {
+    return false;
+  }
+  if (severity === "warning") {
+    const low = Math.max(0, thresholds.warning.warn - 0.15);
+    const high = Math.min(1, thresholds.warning.warn + 0.15);
+    return probability >= low && probability < high;
+  }
+  return probability >= thresholds.error.warn && probability < thresholds.error.fail;
+}
+
 export function combineAggregateOutcome(outcomes: readonly Outcome[]): Outcome {
   if (outcomes.includes("FAIL")) {
     return "FAIL";
